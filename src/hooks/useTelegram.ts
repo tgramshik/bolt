@@ -54,7 +54,8 @@ export const useTelegram = () => {
     };
 
     console.log('Отправляем данные боту:', paymentData);
-    tg.sendData(JSON.stringify(paymentData));
+    const ok = tg.sendData(JSON.stringify(paymentData));
+    console.log('sendData вернул:', ok);
     
     // Показываем пользователю, что данные отправлены
     alert(`Данные отправлены боту: ${JSON.stringify(paymentData)}`);
@@ -73,7 +74,8 @@ export const useTelegram = () => {
     };
 
     console.log('Проверяем подписку через бота:', checkData);
-    tg.sendData(JSON.stringify(checkData));
+    const ok = tg.sendData(JSON.stringify(checkData));
+    console.log('sendData вернул:', ok);
   };
 
   const showPaymentDialog = (onConfirm: () => void, onCancel?: () => void) => {
