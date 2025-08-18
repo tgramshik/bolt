@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Heart, Sparkles, Camera, ZoomIn, X, Flame, Star, Eye, Lock } from 'lucide-react';
 import { useTelegram } from './hooks/useTelegram';
 
@@ -17,7 +17,7 @@ function App() {
   const [currentSuggestion, setCurrentSuggestion] = useState(0);
   const [hasAccess, setHasAccess] = useState(false);
   
-  const { requestPayment, showPaymentDialog, hapticFeedback } = useTelegram();
+  const { requestPayment, checkSubscription, showPaymentDialog, hapticFeedback } = useTelegram();
 
   const suggestions = [
     "Таинственный силуэт на бархатном фоне, свет свечей и волнующие изгибы",
@@ -55,13 +55,9 @@ function App() {
           // Пользователь согласился на оплату
           hapticFeedback('success');
           requestPayment(100, 'Месячная подписка на генерацию изображений');
-          // В реальном приложении здесь бы ждали подтверждения оплаты от бота
-          // Для демонстрации сразу даем доступ
-          setTimeout(() => {
-            setHasAccess(true);
-            localStorage.setItem('anoraArt_hasAccess', 'true');
-            generateImage();
-          }, 1000);
+          // В реальном приложении здесь должна быть проверка оплаты от бота
+          // Пока что показываем сообщение о необходимости оплаты
+          alert('Для завершения оплаты следуйте инструкциям в чате с ботом.');
         },
         () => {
           // Пользователь отказался от оплаты
@@ -107,14 +103,28 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Проверяем доступ при загрузке (в реальном приложении это должно быть через API бота)
+  // Проверяем доступ при загрузке
   useEffect(() => {
-    // Для демонстрации: проверяем localStorage
+    // Сначала проверяем localStorage для быстрого отображения
     const savedAccess = localStorage.getItem('anoraArt_hasAccess');
     if (savedAccess === 'true') {
       setHasAccess(true);
     }
-  }, []);
+    
+    // Затем проверяем актуальный статус через бота
+    checkSubscription();
+    
+    // Слушаем обновления статуса подписки
+    const handleSubscriptionUpdate = (event: CustomEvent) => {
+      setHasAccess(event.detail.hasAccess);
+    };
+    
+    window.addEventListener('subscription_updated', handleSubscriptionUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('subscription_updated', handleSubscriptionUpdate as EventListener);
+    };
+  }, [checkSubscription]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900 to-rose-900 relative overflow-hidden">
@@ -180,7 +190,9 @@ function App() {
               onClick={handleGenerate}
               disabled={isGenerating || (hasAccess && !prompt.trim())}
               className={`w-full py-4 px-6 rounded-2xl font-bold text-white transition-all duration-300 relative overflow-hidden group shadow-2xl ${
-                isGenerating || (hasAccess && !prompt.trim())
+                isGenerating
+                  ? 'bg-gray-700/50 cursor-not-allowed shadow-none'
+                  : (hasAccess && !prompt.trim())
                   ? 'bg-gray-700/50 cursor-not-allowed shadow-none'
                   : hasAccess
                   ? 'bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 shadow-rose-500/50 hover:shadow-rose-400/60 transform hover:scale-[1.02] active:scale-[0.98]'

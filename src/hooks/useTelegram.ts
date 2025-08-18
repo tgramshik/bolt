@@ -11,6 +11,28 @@ export const useTelegram = () => {
       app.ready();
       setTg(app);
       setUser(app.initDataUnsafe?.user);
+      
+      // Слушаем события от бота
+      const handleBotMessage = (event: MessageEvent) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'subscription_status') {
+            // Обновляем статус подписки
+            const hasAccess = data.has_access === true;
+            localStorage.setItem('anoraArt_hasAccess', hasAccess.toString());
+            // Уведомляем приложение об изменении статуса
+            window.dispatchEvent(new CustomEvent('subscription_updated', { detail: { hasAccess } }));
+          }
+        } catch (error) {
+          console.error('Ошибка обработки сообщения от бота:', error);
+        }
+      };
+      
+      window.addEventListener('message', handleBotMessage);
+      
+      return () => {
+        window.removeEventListener('message', handleBotMessage);
+      };
     } else {
       // Fallback для тестирования вне Telegram
       console.log('Telegram WebApp недоступен - режим разработки');
@@ -31,7 +53,27 @@ export const useTelegram = () => {
       currency: 'XTR' // Telegram Stars
     };
 
+    console.log('Отправляем данные боту:', paymentData);
     tg.sendData(JSON.stringify(paymentData));
+    
+    // Показываем пользователю, что данные отправлены
+    alert(`Данные отправлены боту: ${JSON.stringify(paymentData)}`);
+  };
+
+  const checkSubscription = () => {
+    if (!tg || !user) {
+      console.warn('Telegram WebApp или пользователь недоступны');
+      return;
+    }
+
+    // Отправляем запрос боту для проверки статуса подписки
+    const checkData = {
+      action: 'check_subscription',
+      user_id: user.id
+    };
+
+    console.log('Проверяем подписку через бота:', checkData);
+    tg.sendData(JSON.stringify(checkData));
   };
 
   const showPaymentDialog = (onConfirm: () => void, onCancel?: () => void) => {
@@ -74,6 +116,7 @@ export const useTelegram = () => {
     tg,
     user,
     requestPayment,
+    checkSubscription,
     showPaymentDialog,
     hapticFeedback,
     isInTelegram: !!tg
