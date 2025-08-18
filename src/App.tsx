@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Sparkles, Camera, ZoomIn, X, Flame, Star, Eye } from 'lucide-react';
+import { Heart, Sparkles, Camera, ZoomIn, X, Flame, Star, Eye, Lock } from 'lucide-react';
+import { useTelegram } from './hooks/useTelegram';
 
 interface GeneratedImage {
   id: number;
@@ -14,6 +15,9 @@ function App() {
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(null);
   const [currentSuggestion, setCurrentSuggestion] = useState(0);
+  const [hasAccess, setHasAccess] = useState(false);
+  
+  const { requestPayment, showPaymentDialog, hapticFeedback } = useTelegram();
 
   const suggestions = [
     "Таинственный силуэт на бархатном фоне, свет свечей и волнующие изгибы",
@@ -43,7 +47,36 @@ function App() {
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
     
+    // Проверяем доступ - если нет доступа, запрашиваем оплату
+    if (!hasAccess) {
+      hapticFeedback('light');
+      showPaymentDialog(
+        () => {
+          // Пользователь согласился на оплату
+          hapticFeedback('success');
+          requestPayment(100, 'Месячная подписка на генерацию изображений');
+          // В реальном приложении здесь бы ждали подтверждения оплаты от бота
+          // Для демонстрации сразу даем доступ
+          setTimeout(() => {
+            setHasAccess(true);
+            localStorage.setItem('anoraArt_hasAccess', 'true');
+            generateImage();
+          }, 1000);
+        },
+        () => {
+          // Пользователь отказался от оплаты
+          hapticFeedback('error');
+        }
+      );
+      return;
+    }
+    
+    generateImage();
+  };
+
+  const generateImage = async () => {
     setIsGenerating(true);
+    hapticFeedback('medium');
     
     // Имитация времени генерации
     await new Promise(resolve => setTimeout(resolve, 3000));
@@ -60,6 +93,7 @@ function App() {
     setGeneratedImages(prev => [newImage, ...prev]);
     setIsGenerating(false);
     setPrompt('');
+    hapticFeedback('success');
   };
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -71,6 +105,15 @@ function App() {
       setCurrentSuggestion(prev => (prev + 1) % suggestions.length);
     }, 4000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Проверяем доступ при загрузке (в реальном приложении это должно быть через API бота)
+  useEffect(() => {
+    // Для демонстрации: проверяем localStorage
+    const savedAccess = localStorage.getItem('anoraArt_hasAccess');
+    if (savedAccess === 'true') {
+      setHasAccess(true);
+    }
   }, []);
 
   return (
@@ -97,6 +140,15 @@ function App() {
           <Eye className="w-7 h-7 text-purple-300 ml-2 animate-pulse delay-300" />
         </div>
         <p className="text-rose-100/90 text-base font-medium tracking-wide">Искусство Намёка</p>
+        
+        {/* Status indicator */}
+        {hasAccess && (
+          <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full bg-green-500/20 border border-green-400/30">
+            <Star className="w-4 h-4 text-green-400 mr-2" />
+            <span className="text-green-300 text-sm font-medium">Премиум доступ</span>
+          </div>
+        )}
+        
         <div className="mt-3 w-20 h-0.5 bg-gradient-to-r from-rose-400 to-purple-400 rounded-full mx-auto shadow-lg shadow-rose-400/50"></div>
       </header>
 
@@ -126,11 +178,13 @@ function App() {
             
             <button
               onClick={handleGenerate}
-              disabled={isGenerating || !prompt.trim()}
+              disabled={isGenerating || (hasAccess && !prompt.trim())}
               className={`w-full py-4 px-6 rounded-2xl font-bold text-white transition-all duration-300 relative overflow-hidden group shadow-2xl ${
-                isGenerating || !prompt.trim()
+                isGenerating || (hasAccess && !prompt.trim())
                   ? 'bg-gray-700/50 cursor-not-allowed shadow-none'
-                  : 'bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 shadow-rose-500/50 hover:shadow-rose-400/60 transform hover:scale-[1.02] active:scale-[0.98]'
+                  : hasAccess
+                  ? 'bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 shadow-rose-500/50 hover:shadow-rose-400/60 transform hover:scale-[1.02] active:scale-[0.98]'
+                  : 'bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-500 hover:to-orange-400 shadow-amber-500/50 hover:shadow-amber-400/60 transform hover:scale-[1.02] active:scale-[0.98]'
               }`}
             >
               <div className="flex items-center justify-center relative z-10">
@@ -139,10 +193,15 @@ function App() {
                     <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white mr-3"></div>
                     Создаю шедевр...
                   </>
-                ) : (
+                ) : hasAccess ? (
                   <>
                     <Camera className="w-5 h-5 mr-3" />
                     Сгенерировать
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-5 h-5 mr-3" />
+                    Оплатить доступ (100 ⭐)
                   </>
                 )}
               </div>
