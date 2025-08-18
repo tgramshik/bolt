@@ -45,8 +45,6 @@ function App() {
   ];
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) return;
-    
     // Проверяем доступ - если нет доступа, запрашиваем оплату
     if (!hasAccess) {
       hapticFeedback('light');
@@ -188,11 +186,9 @@ function App() {
             
             <button
               onClick={handleGenerate}
-              disabled={isGenerating || (hasAccess && !prompt.trim())}
+              disabled={isGenerating}
               className={`w-full py-4 px-6 rounded-2xl font-bold text-white transition-all duration-300 relative overflow-hidden group shadow-2xl ${
                 isGenerating
-                  ? 'bg-gray-700/50 cursor-not-allowed shadow-none'
-                  : (hasAccess && !prompt.trim())
                   ? 'bg-gray-700/50 cursor-not-allowed shadow-none'
                   : hasAccess
                   ? 'bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 shadow-rose-500/50 hover:shadow-rose-400/60 transform hover:scale-[1.02] active:scale-[0.98]'

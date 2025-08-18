@@ -10,7 +10,22 @@ export const useTelegram = () => {
     if (app) {
       app.ready();
       setTg(app);
-      setUser(app.initDataUnsafe?.user);
+      
+      console.log('Telegram WebApp версия:', app.version);
+      console.log('initData:', app.initData);
+      console.log('initDataUnsafe:', app.initDataUnsafe);
+      
+      const userData = app.initDataUnsafe?.user;
+      if (userData) {
+        setUser(userData);
+        console.log('Пользователь найден:', userData);
+      } else {
+        console.warn('Пользователь не найден в initDataUnsafe');
+        // Попробуем получить из initData
+        if (app.initData) {
+          console.log('Пытаемся парсить initData:', app.initData);
+        }
+      }
       
       // Слушаем события от бота
       const handleBotMessage = (event: MessageEvent) => {
@@ -62,8 +77,13 @@ export const useTelegram = () => {
   };
 
   const checkSubscription = () => {
-    if (!tg || !user) {
-      console.warn('Telegram WebApp или пользователь недоступны');
+    if (!tg) {
+      console.warn('Telegram WebApp недоступен');
+      return;
+    }
+    
+    if (!user) {
+      console.warn('Пользователь недоступен, пропускаем проверку подписки');
       return;
     }
 
@@ -92,25 +112,58 @@ export const useTelegram = () => {
       return;
     }
 
-    tg.showConfirm(
-      'Для генерации изображений требуется месячная подписка за 100 Telegram Stars. Продолжить?',
-      (confirmed: boolean) => {
+    // Проверяем поддержку showConfirm
+    if (typeof tg.showConfirm === 'function') {
+      try {
+        tg.showConfirm(
+          'Для генерации изображений требуется месячная подписка за 100 Telegram Stars. Продолжить?',
+          (confirmed: boolean) => {
+            if (confirmed) {
+              onConfirm();
+            } else if (onCancel) {
+              onCancel();
+            }
+          }
+        );
+      } catch (error) {
+        console.warn('showConfirm не поддерживается, используем fallback:', error);
+        // Fallback на обычный confirm
+        const confirmed = window.confirm(
+          'Для генерации изображений требуется месячная подписка за 100 Telegram Stars. Продолжить?'
+        );
         if (confirmed) {
           onConfirm();
         } else if (onCancel) {
           onCancel();
         }
       }
-    );
+    } else {
+      console.log('showConfirm недоступен, используем window.confirm');
+      const confirmed = window.confirm(
+        'Для генерации изображений требуется месячная подписка за 100 Telegram Stars. Продолжить?'
+      );
+      if (confirmed) {
+        onConfirm();
+      } else if (onCancel) {
+        onCancel();
+      }
+    }
   };
 
   const hapticFeedback = (type: 'light' | 'medium' | 'heavy' | 'error' | 'success' | 'warning') => {
-    if (!tg?.HapticFeedback) return;
+    if (!tg?.HapticFeedback) {
+      console.log('HapticFeedback недоступен в этой версии Telegram');
+      return;
+    }
 
-    if (type === 'error' || type === 'success' || type === 'warning') {
-      tg.HapticFeedback.notificationOccurred(type);
-    } else {
-      tg.HapticFeedback.impactOccurred(type);
+    try {
+      if (type === 'error' || type === 'success' || type === 'warning') {
+        tg.HapticFeedback.notificationOccurred(type);
+      } else {
+        tg.HapticFeedback.impactOccurred(type);
+      }
+    } catch (error) {
+      console.warn('Ошибка HapticFeedback:', error);
     }
   };
 
