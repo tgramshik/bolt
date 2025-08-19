@@ -17,7 +17,7 @@ function App() {
   const [currentSuggestion, setCurrentSuggestion] = useState(0);
   const [hasAccess, setHasAccess] = useState(false);
   
-  const { requestPayment, checkSubscription, showPaymentDialog, hapticFeedback, isInTelegram, user, tg } = useTelegram();
+  const { requestPayment, checkSubscription, showPaymentDialog, hapticFeedback, isInTelegram, user } = useTelegram();
 
   const suggestions = [
     "Таинственный силуэт на бархатном фоне, свет свечей и волнующие изгибы",
@@ -94,6 +94,25 @@ function App() {
     setPrompt(suggestion);
   };
 
+  const handlePremiumClick = () => {
+    if (!hasAccess) {
+      hapticFeedback('light');
+      showPaymentDialog(
+        () => {
+          hapticFeedback('success');
+          requestPayment(100, 'Месячная подписка на премиум 18+ модели');
+          alert('Для завершения оплаты следуйте инструкциям в чате с ботом.');
+        },
+        () => {
+          hapticFeedback('error');
+        }
+      );
+      return;
+    }
+    hapticFeedback('success');
+    alert('Скоро здесь будет каталог премиум 18+ моделей.');
+  };
+
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSuggestion(prev => (prev + 1) % suggestions.length);
@@ -139,15 +158,15 @@ function App() {
       </div>
 
       {/* Header */}
-      <header className="relative z-10 pt-12 pb-8 px-6 text-center">
+      <header className="relative z-10 pt-16 pb-8 px-6 text-center">
         <div className="flex items-center justify-center mb-3">
           <Flame className="w-7 h-7 text-rose-400 mr-2 animate-pulse" />
           <h1 className="text-3xl font-serif font-bold bg-gradient-to-r from-rose-200 via-pink-100 to-purple-200 bg-clip-text text-transparent">
-            Анора Арт
+            Анора 18+
           </h1>
           <Eye className="w-7 h-7 text-purple-300 ml-2 animate-pulse delay-300" />
         </div>
-        <p className="text-rose-100/90 text-base font-medium tracking-wide">Искусство Намёка</p>
+        <p className="text-rose-100/90 text-base font-medium tracking-wide">Генерация 18+ изображений</p>
         
         {/* Status indicator */}
         {hasAccess && (
@@ -159,34 +178,15 @@ function App() {
         
         <div className="mt-3 w-20 h-0.5 bg-gradient-to-r from-rose-400 to-purple-400 rounded-full mx-auto shadow-lg shadow-rose-400/50"></div>
 
-        {/* Diagnostics: Telegram / User presence */}
-        <div className="mt-3 flex items-center justify-center gap-2 text-xs">
-          {isInTelegram ? (
-            <span className="inline-flex items-center px-2 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-200">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 mr-2"></span>
-              В Telegram WebApp {tg?.version ? `v${tg.version}` : ''}
+        {/* Diagnostics: User presence only */}
+        {isInTelegram && user && (
+          <div className="mt-3 flex items-center justify-center gap-2 text-xs">
+            <span className="inline-flex items-center px-2 py-1 rounded-full bg-sky-500/15 border border-sky-400/30 text-sky-200">
+              <span className="w-2 h-2 rounded-full bg-sky-400 mr-2"></span>
+              Пользователь: {user.first_name}{user.last_name ? ` ${user.last_name}` : ''} (ID: {user.id})
             </span>
-          ) : (
-            <span className="inline-flex items-center px-2 py-1 rounded-full bg-red-500/15 border border-red-400/30 text-red-200">
-              <span className="w-2 h-2 rounded-full bg-red-400 mr-2"></span>
-              Не в Telegram WebApp
-            </span>
-          )}
-
-          {isInTelegram && (
-            user ? (
-              <span className="inline-flex items-center px-2 py-1 rounded-full bg-sky-500/15 border border-sky-400/30 text-sky-200">
-                <span className="w-2 h-2 rounded-full bg-sky-400 mr-2"></span>
-                Пользователь: {user.first_name}{user.last_name ? ` ${user.last_name}` : ''} (ID: {user.id})
-              </span>
-            ) : (
-              <span className="inline-flex items-center px-2 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-200">
-                <span className="w-2 h-2 rounded-full bg-amber-400 mr-2"></span>
-                Пользователь не найден в initData
-              </span>
-            )
-          )}
-        </div>
+          </div>
+        )}
       </header>
 
       {/* Main Content */}
@@ -247,6 +247,33 @@ function App() {
               )}
             </button>
           </div>
+        </div>
+
+        {/* Premium 18+ Models CTA (between pay and best ideas) */}
+        <div className="relative z-10 mb-6">
+          <button
+            onClick={handlePremiumClick}
+            className={`w-full py-4 px-6 rounded-2xl font-bold text-white transition-all duration-300 relative overflow-hidden group shadow-2xl ${
+              hasAccess
+                ? 'bg-gradient-to-r from-fuchsia-600 to-rose-600 hover:from-fuchsia-500 hover:to-rose-500 shadow-fuchsia-500/40 hover:shadow-rose-400/50 transform hover:scale-[1.02] active:scale-[0.98]'
+                : 'bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-500 hover:to-orange-400 shadow-amber-500/50 hover:shadow-amber-400/60 transform hover:scale-[1.02] active:scale-[0.98]'
+            }`}
+          >
+            <div className="flex items-center justify-center relative z-10">
+              {hasAccess ? (
+                <>
+                  <Sparkles className="w-5 h-5 mr-3" />
+                  Премиум 18+ модели
+                </>
+              ) : (
+                <>
+                  <Lock className="w-5 h-5 mr-3" />
+                  Премиум 18+ модели
+                </>
+              )}
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 translate-x-full group-hover:translate-x-[-150%] transition-transform duration-700"></div>
+          </button>
         </div>
 
         {/* Best Ideas Panel */}
