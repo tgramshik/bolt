@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
 import { TelegramWebApp } from '../types/telegram';
 
-// Используем прямой IP к нашему серверу
-const BACKEND_URL = 'http://212.86.105.205:8081';
-
 export const useTelegram = () => {
   const [tg, setTg] = useState<TelegramWebApp | null>(null);
   const [user, setUser] = useState<any>(null);
@@ -66,51 +63,14 @@ export const useTelegram = () => {
       ...data
     };
     
-    // Определяем тип запуска и выбираем способ отправки
-    if (tg.initDataUnsafe?.chat && tg.sendData) {
-      // KeyboardButton - используем sendData
-      console.log('Using KeyboardButton method (sendData)');
-      try {
-        tg.sendData(JSON.stringify(dataToSend));
-        tg.close();
-      } catch (error) {
-        console.error('Error with sendData:', error);
-        showError('Ошибка отправки данных');
-      }
-      
-    } else if (tg.initDataUnsafe?.query_id) {
-      // InlineKeyboardButton - используем fetch
-      console.log('Using InlineKeyboardButton method (fetch)');
-      
-      fetch(`${BACKEND_URL}/webapp/inline`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query_id: tg.initDataUnsafe.query_id,
-          data: dataToSend
-        })
-      })
-      .then(response => {
-        console.log('Response status:', response.status);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then(result => {
-        console.log('Success:', result);
-        tg.close();
-      })
-      .catch(error => {
-        console.error('Error with fetch:', error);
-        showError('Ошибка связи с сервером: ' + error.message);
-      });
-      
-    } else {
-      console.error('Unknown launch method');
-      showError('Неизвестный способ запуска');
+    // Используем только sendData для KeyboardButton
+    try {
+      console.log('Using sendData method');
+      tg.sendData(JSON.stringify(dataToSend));
+      tg.close();
+    } catch (error) {
+      console.error('Error with sendData:', error);
+      alert('Ошибка отправки данных: ' + error.message);
     }
   };
 
@@ -157,7 +117,7 @@ export const useTelegram = () => {
     if (typeof tg.showConfirm === 'function') {
       try {
         tg.showConfirm(
-          'Для генерации изображений требуется месячная подписку за 100 Telegram Stars. Продолжить?',
+          'Для генерации изображений требуется месячная подписка за 100 Telegram Stars. Продолжить?',
           (confirmed: boolean) => {
             if (confirmed) {
               onConfirm();
@@ -215,16 +175,6 @@ export const useTelegram = () => {
     };
     console.log('Выбор модели — отправляем боту:', payload);
     sendWebAppData(payload);
-  };
-
-  const showError = (message: string) => {
-    const errorDiv = document.getElementById('error');
-    if (errorDiv) {
-      errorDiv.textContent = message;
-      errorDiv.style.display = 'block';
-    } else {
-      alert(message);
-    }
   };
 
   return {
