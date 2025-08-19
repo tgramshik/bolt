@@ -17,7 +17,7 @@ function App() {
   const [currentSuggestion, setCurrentSuggestion] = useState(0);
   const [hasAccess, setHasAccess] = useState(false);
   
-  const { requestPayment, checkSubscription, showPaymentDialog, hapticFeedback } = useTelegram();
+  const { requestPayment, checkSubscription, showPaymentDialog, hapticFeedback, isInTelegram, user, tg } = useTelegram();
 
   const suggestions = [
     "Таинственный силуэт на бархатном фоне, свет свечей и волнующие изгибы",
@@ -158,6 +158,35 @@ function App() {
         )}
         
         <div className="mt-3 w-20 h-0.5 bg-gradient-to-r from-rose-400 to-purple-400 rounded-full mx-auto shadow-lg shadow-rose-400/50"></div>
+
+        {/* Diagnostics: Telegram / User presence */}
+        <div className="mt-3 flex items-center justify-center gap-2 text-xs">
+          {isInTelegram ? (
+            <span className="inline-flex items-center px-2 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-200">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 mr-2"></span>
+              В Telegram WebApp {tg?.version ? `v${tg.version}` : ''}
+            </span>
+          ) : (
+            <span className="inline-flex items-center px-2 py-1 rounded-full bg-red-500/15 border border-red-400/30 text-red-200">
+              <span className="w-2 h-2 rounded-full bg-red-400 mr-2"></span>
+              Не в Telegram WebApp
+            </span>
+          )}
+
+          {isInTelegram && (
+            user ? (
+              <span className="inline-flex items-center px-2 py-1 rounded-full bg-sky-500/15 border border-sky-400/30 text-sky-200">
+                <span className="w-2 h-2 rounded-full bg-sky-400 mr-2"></span>
+                Пользователь: {user.first_name}{user.last_name ? ` ${user.last_name}` : ''} (ID: {user.id})
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-2 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-200">
+                <span className="w-2 h-2 rounded-full bg-amber-400 mr-2"></span>
+                Пользователь не найден в initData
+              </span>
+            )
+          )}
+        </div>
       </header>
 
       {/* Main Content */}
