@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { TelegramWebApp } from '../types/telegram';
 
 // ЗАМЕНИТЕ НА РЕАЛЬНЫЙ АДРЕС ВАШЕГО СЕРВЕРА
-const BACKEND_URL = 'https://eclipse-diesel-unauthorized-architecture.trycloudflare.com';
+const BACKEND_URL = 'https://bolt-ruby-alpha.vercel.app/api';
 
 export const useTelegram = () => {
   const [tg, setTg] = useState<TelegramWebApp | null>(null);
@@ -90,7 +90,7 @@ export const useTelegram = () => {
       // InlineKeyboardButton - используем fetch
       console.log('Using InlineKeyboardButton method (fetch)');
       
-      fetch(`${BACKEND_URL}/webapp/inline`, {
+      fetch(`${BACKEND_URL}/webapp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
