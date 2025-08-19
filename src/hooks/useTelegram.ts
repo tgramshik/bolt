@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
 import { TelegramWebApp } from '../types/telegram';
 
-// ЗАМЕНИТЕ НА РЕАЛЬНЫЙ АДРЕС ВАШЕГО СЕРВЕРА
-const BACKEND_URL = 'https://bolt-ruby-alpha.vercel.app/api';
-
 export const useTelegram = () => {
   const [tg, setTg] = useState<TelegramWebApp | null>(null);
   const [user, setUser] = useState<any>(null);
@@ -24,21 +21,17 @@ export const useTelegram = () => {
         console.log('Пользователь найден:', userData);
       } else {
         console.warn('Пользователь не найден в initDataUnsafe');
-        // Попробуем получить из initData
         if (app.initData) {
           console.log('Пытаемся парсить initData:', app.initData);
         }
       }
       
-      // Слушаем события от бота
       const handleBotMessage = (event: MessageEvent) => {
         try {
           const data = JSON.parse(event.data);
           if (data.type === 'subscription_status') {
-            // Обновляем статус подписки
             const hasAccess = data.has_access === true;
             localStorage.setItem('anoraArt_hasAccess', hasAccess.toString());
-            // Уведомляем приложение об изменении статуса
             window.dispatchEvent(new CustomEvent('subscription_updated', { detail: { hasAccess } }));
           }
         } catch (error) {
@@ -52,14 +45,10 @@ export const useTelegram = () => {
         window.removeEventListener('message', handleBotMessage);
       };
     } else {
-      // Fallback для тестирования вне Telegram
       console.log('Telegram WebApp недоступен - режим разработки');
     }
   }, []);
 
-  /**
-   * Универсальная отправка данных - работает с KeyboardButton и InlineKeyboardButton
-   */
   const sendWebAppData = (data: any) => {
     if (!tg) {
       console.warn('Telegram WebApp не доступен');
@@ -74,60 +63,28 @@ export const useTelegram = () => {
       ...data
     };
     
-    // Определяем тип запуска и выбираем способ отправки
-    if (tg.initDataUnsafe?.chat && tg.sendData) {
-      // KeyboardButton - используем sendData
-      console.log('Using KeyboardButton method (sendData)');
-      try {
-        tg.sendData(JSON.stringify(dataToSend));
-        tg.close();
-      } catch (error) {
-        console.error('Error with sendData:', error);
-        showError('Ошибка отправки данных');
+    try {
+      console.log('Using universal sendData method');
+      tg.sendData(JSON.stringify(dataToSend));
+      tg.close();
+    } catch (error) {
+      console.error('Error with sendData:', error);
+      const errorDiv = document.getElementById('error');
+      if (errorDiv) {
+        errorDiv.textContent = 'Ошибка отправки данных: ' + error.message;
+        errorDiv.style.display = 'block';
+      } else {
+        alert('Ошибка отправки данных: ' + error.message);
       }
-      
-    } else if (tg.initDataUnsafe?.query_id) {
-      // InlineKeyboardButton - используем fetch
-      console.log('Using InlineKeyboardButton method (fetch)');
-      
-      fetch(`${BACKEND_URL}/webapp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query_id: tg.initDataUnsafe.query_id,
-          data: dataToSend
-        })
-      })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then(result => {
-        console.log('Success:', result);
-        tg.close();
-      })
-      .catch(error => {
-        console.error('Error with fetch:', error);
-        showError('Ошибка связи с сервером');
-      });
-      
-    } else {
-      console.error('Unknown launch method');
-      showError('Неизвестный способ запуска');
     }
   };
 
   const requestPayment = (amount: number, description: string) => {
-    // Отправляем данные боту для инициации платежа
     const paymentData = {
       action: 'request_payment',
       amount: amount,
       description: description,
-      currency: 'XTR' // Telegram Stars
+      currency: 'XTR'
     };
 
     console.log('Отправляем данные боту:', paymentData);
@@ -140,7 +97,6 @@ export const useTelegram = () => {
       return;
     }
 
-    // Отправляем запрос боту для проверки статуса подписки
     const checkData = {
       action: 'check_subscription',
       user_id: user.id
@@ -152,7 +108,6 @@ export const useTelegram = () => {
 
   const showPaymentDialog = (onConfirm: () => void, onCancel?: () => void) => {
     if (!tg) {
-      // Fallback для тестирования вне Telegram
       const confirmed = window.confirm(
         'Для генерации изображений требуется месячная подписка за 100 Telegram Stars. Продолжить?'
       );
@@ -164,7 +119,6 @@ export const useTelegram = () => {
       return;
     }
 
-    // Проверяем поддержку showConfirm
     if (typeof tg.showConfirm === 'function') {
       try {
         tg.showConfirm(
@@ -179,7 +133,6 @@ export const useTelegram = () => {
         );
       } catch (error) {
         console.warn('showConfirm не поддерживается, используем fallback:', error);
-        // Fallback на обычный confirm
         const confirmed = window.confirm(
           'Для генерации изображений требуется месячная подписка за 100 Telegram Stars. Продолжить?'
         );
@@ -229,18 +182,6 @@ export const useTelegram = () => {
     sendWebAppData(payload);
   };
 
-  // Функция для отображения ошибок
-  const showError = (message: string) => {
-    // Попробуем найти элемент error в DOM
-    const errorDiv = document.getElementById('error');
-    if (errorDiv) {
-      errorDiv.textContent = message;
-      errorDiv.style.display = 'block';
-    } else {
-      alert(message);
-    }
-  };
-
   return {
     tg,
     user,
@@ -249,7 +190,7 @@ export const useTelegram = () => {
     showPaymentDialog,
     hapticFeedback,
     setModel,
-    sendWebAppData, // Добавляем универсальную функцию
+    sendWebAppData,
     isInTelegram: !!tg
   };
 };
