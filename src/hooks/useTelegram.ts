@@ -167,6 +167,21 @@ export const useTelegram = () => {
     }
   };
 
+  const setModel = (modelId: string, title?: string) => {
+    if (!tg) {
+      console.warn('Telegram WebApp не доступен');
+      return;
+    }
+    const payload = {
+      action: 'select_model',
+      model_id: modelId,
+      title: title
+    };
+    console.log('Выбор модели — отправляем боту:', payload);
+    const ok = tg.sendData(JSON.stringify(payload));
+    console.log('sendData вернул:', ok);
+  };
+
   return {
     tg,
     user,
@@ -174,6 +189,7 @@ export const useTelegram = () => {
     checkSubscription,
     showPaymentDialog,
     hapticFeedback,
+    setModel,
     isInTelegram: !!tg
   };
 };

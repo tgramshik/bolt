@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Heart, Sparkles, Camera, ZoomIn, X, Flame, Star, Eye, Lock } from 'lucide-react';
 import { useTelegram } from './hooks/useTelegram';
+import PremiumModels from './pages/PremiumModels';
 
 interface GeneratedImage {
   id: number;
@@ -16,6 +17,7 @@ function App() {
   const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(null);
   const [currentSuggestion, setCurrentSuggestion] = useState(0);
   const [hasAccess, setHasAccess] = useState(false);
+  const [route, setRoute] = useState<string>(window.location.hash || '#/');
   
   const { requestPayment, checkSubscription, showPaymentDialog, hapticFeedback, isInTelegram, user } = useTelegram();
 
@@ -94,23 +96,27 @@ function App() {
     setPrompt(suggestion);
   };
 
+  const promptForPremium = () => {
+    hapticFeedback('light');
+    showPaymentDialog(
+      () => {
+        hapticFeedback('success');
+        requestPayment(100, 'Месячная подписка на премиум 18+ модели');
+        alert('Для завершения оплаты следуйте инструкциям в чате с ботом.');
+      },
+      () => {
+        hapticFeedback('error');
+      }
+    );
+  };
+
   const handlePremiumClick = () => {
     if (!hasAccess) {
-      hapticFeedback('light');
-      showPaymentDialog(
-        () => {
-          hapticFeedback('success');
-          requestPayment(100, 'Месячная подписка на премиум 18+ модели');
-          alert('Для завершения оплаты следуйте инструкциям в чате с ботом.');
-        },
-        () => {
-          hapticFeedback('error');
-        }
-      );
+      promptForPremium();
       return;
     }
     hapticFeedback('success');
-    alert('Скоро здесь будет каталог премиум 18+ моделей.');
+    window.location.hash = '#/models';
   };
 
   useEffect(() => {
@@ -142,6 +148,28 @@ function App() {
       window.removeEventListener('subscription_updated', handleSubscriptionUpdate as EventListener);
     };
   }, [checkSubscription]);
+
+  // Hash routing
+  useEffect(() => {
+    const onHashChange = () => setRoute(window.location.hash || '#/');
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  // Route switch: models page vs main
+  if (route === '#/models') {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900 to-rose-900 relative overflow-hidden">
+        <main className="relative z-10">
+          <PremiumModels
+            hasAccess={hasAccess}
+            onRequirePremium={promptForPremium}
+            onBack={() => { window.location.hash = '#/'; }}
+          />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900 to-rose-900 relative overflow-hidden">
@@ -255,8 +283,8 @@ function App() {
             onClick={handlePremiumClick}
             className={`w-full py-4 px-6 rounded-2xl font-bold text-white transition-all duration-300 relative overflow-hidden group shadow-2xl ${
               hasAccess
-                ? 'bg-gradient-to-r from-fuchsia-600 to-rose-600 hover:from-fuchsia-500 hover:to-rose-500 shadow-fuchsia-500/40 hover:shadow-rose-400/50 transform hover:scale-[1.02] active:scale-[0.98]'
-                : 'bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-500 hover:to-orange-400 shadow-amber-500/50 hover:shadow-amber-400/60 transform hover:scale-[1.02] active:scale-[0.98]'
+                ? 'bg-gradient-to-r from-pink-700 via-fuchsia-700 to-purple-700 hover:from-pink-600 hover:via-fuchsia-600 hover:to-purple-600 shadow-pink-500/60 hover:shadow-fuchsia-500/70 transform hover:scale-[1.02] active:scale-[0.98]'
+                : 'bg-gradient-to-r from-rose-700 via-pink-700 to-fuchsia-700 hover:from-rose-600 hover:via-pink-600 hover:to-fuchsia-600 shadow-rose-600/60 hover:shadow-pink-500/70 transform hover:scale-[1.02] active:scale-[0.98]'
             }`}
           >
             <div className="flex items-center justify-center relative z-10">
