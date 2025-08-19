@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
 import { TelegramWebApp } from '../types/telegram';
 
-// ЗАМЕНИТЕ НА РЕАЛЬНЫЙ АДРЕС ВАШЕГО СЕРВЕРА
-const BACKEND_URL = 'http://localhost:8080';
-
 export const useTelegram = () => {
   const [tg, setTg] = useState<TelegramWebApp | null>(null);
   const [user, setUser] = useState<any>(null);
@@ -57,71 +54,12 @@ export const useTelegram = () => {
     }
   }, []);
 
-  /**
-   * Универсальная отправка данных - работает с KeyboardButton и InlineKeyboardButton
-   */
-  const sendWebAppData = (data: any) => {
+  const requestPayment = (amount: number, description: string) => {
     if (!tg) {
       console.warn('Telegram WebApp не доступен');
       return;
     }
 
-    console.log('Sending data:', data);
-    
-    const dataToSend = {
-      action: data.action,
-      user_id: tg.initDataUnsafe?.user?.id,
-      ...data
-    };
-    
-    // Определяем тип запуска и выбираем способ отправки
-    if (tg.initDataUnsafe?.chat && tg.sendData) {
-      // KeyboardButton - используем sendData
-      console.log('Using KeyboardButton method (sendData)');
-      try {
-        tg.sendData(JSON.stringify(dataToSend));
-        tg.close();
-      } catch (error) {
-        console.error('Error with sendData:', error);
-        showError('Ошибка отправки данных');
-      }
-      
-    } else if (tg.initDataUnsafe?.query_id) {
-      // InlineKeyboardButton - используем fetch
-      console.log('Using InlineKeyboardButton method (fetch)');
-      
-      fetch(`${BACKEND_URL}/webapp/inline`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query_id: tg.initDataUnsafe.query_id,
-          data: dataToSend
-        })
-      })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then(result => {
-        console.log('Success:', result);
-        tg.close();
-      })
-      .catch(error => {
-        console.error('Error with fetch:', error);
-        showError('Ошибка связи с сервером');
-      });
-      
-    } else {
-      console.error('Unknown launch method');
-      showError('Неизвестный способ запуска');
-    }
-  };
-
-  const requestPayment = (amount: number, description: string) => {
     // Отправляем данные боту для инициации платежа
     const paymentData = {
       action: 'request_payment',
@@ -131,10 +69,19 @@ export const useTelegram = () => {
     };
 
     console.log('Отправляем данные боту:', paymentData);
-    sendWebAppData(paymentData);
+    const ok = tg.sendData(JSON.stringify(paymentData));
+    console.log('sendData вернул:', ok);
+    
+    // Показываем пользователю, что данные отправлены
+    alert(`Данные отправлены боту: ${JSON.stringify(paymentData)}`);
   };
 
   const checkSubscription = () => {
+    if (!tg) {
+      console.warn('Telegram WebApp недоступен');
+      return;
+    }
+    
     if (!user) {
       console.warn('Пользователь недоступен, пропускаем проверку подписки');
       return;
@@ -147,7 +94,8 @@ export const useTelegram = () => {
     };
 
     console.log('Проверяем подписку через бота:', checkData);
-    sendWebAppData(checkData);
+    const ok = tg.sendData(JSON.stringify(checkData));
+    console.log('sendData вернул:', ok);
   };
 
   const showPaymentDialog = (onConfirm: () => void, onCancel?: () => void) => {
@@ -220,25 +168,18 @@ export const useTelegram = () => {
   };
 
   const setModel = (modelId: string, title?: string) => {
+    if (!tg) {
+      console.warn('Telegram WebApp не доступен');
+      return;
+    }
     const payload = {
       action: 'select_model',
       model_id: modelId,
       title: title
     };
     console.log('Выбор модели — отправляем боту:', payload);
-    sendWebAppData(payload);
-  };
-
-  // Функция для отображения ошибок
-  const showError = (message: string) => {
-    // Попробуем найти элемент error в DOM
-    const errorDiv = document.getElementById('error');
-    if (errorDiv) {
-      errorDiv.textContent = message;
-      errorDiv.style.display = 'block';
-    } else {
-      alert(message);
-    }
+    const ok = tg.sendData(JSON.stringify(payload));
+    console.log('sendData вернул:', ok);
   };
 
   return {
@@ -249,7 +190,6 @@ export const useTelegram = () => {
     showPaymentDialog,
     hapticFeedback,
     setModel,
-    sendWebAppData, // Добавляем универсальную функцию
     isInTelegram: !!tg
   };
 };
