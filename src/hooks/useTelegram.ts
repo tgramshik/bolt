@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { TelegramWebApp } from '../types/telegram';
 
 // ЗАМЕНИТЕ НА РЕАЛЬНЫЙ АДРЕС ВАШЕГО СЕРВЕРА
-const BACKEND_URL = 'http://localhost:8080';
+const BACKEND_URL = 'https://literally-of-tight-unlikely.trycloudflare.com';
 
 export const useTelegram = () => {
   const [tg, setTg] = useState<TelegramWebApp | null>(null);
